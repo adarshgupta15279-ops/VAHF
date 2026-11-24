@@ -1,0 +1,305 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Shared helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string &&
+             data.userId.size() >= 1 &&
+             data.userId.size() <= 128 &&
+             data.fullName is string &&
+             data.fullName.size() >= 2 &&
+             data.fullName.size() <= 80 &&
+             data.email is string &&
+             data.email.size() >= 3 &&
+             data.email.size() <= 120 &&
+             data.registrationCompleted is bool &&
+             (!('mobileNumber' in data) || (data.mobileNumber is string && data.mobileNumber.size() <= 20)) &&
+             (!('city' in data) || (data.city is string && data.city.size() <= 80)) &&
+             (!('wellnessGoal' in data) || (data.wellnessGoal is string && data.wellnessGoal.size() <= 120));
+    }
+
+    function isValidPostLike(data) {
+      return data.userId is string &&
+             data.userId.size() >= 1 &&
+             data.userId.size() <= 128 &&
+             data.postId is string &&
+             isValidId(data.postId);
+    }
+
+    function isValidPostComment(data) {
+      return data.userId is string &&
+             data.userId.size() >= 1 &&
+             data.userId.size() <= 128 &&
+             data.postId is string &&
+             isValidId(data.postId) &&
+             data.authorName is string &&
+             data.authorName.size() >= 1 &&
+             data.authorName.size() <= 80 &&
+             data.text is string &&
+             data.text.size() >= 1 &&
+             data.text.size() <= 500;
+    }
+
+    // Private student profile & registration documents (strictly owner-isolated)
+    match /users/{userId} {
+      allow get, list: if isSignedIn() && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'fullName', 'email', 'registrationCompleted', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'fullName', 'email', 'mobileNumber', 'city', 'wellnessGoal', 'registrationCompleted', 'createdAt', 'updatedAt']) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       isValidUserProfile(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(userId) &&
+                       request.auth.uid == userId &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'email', 'mobileNumber', 'city', 'wellnessGoal', 'registrationCompleted', 'updatedAt']);
+
+      allow delete: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+    }
+
+    // Community post likes & comments (shared across registered users, zero PII)
+    match /posts/{postId} {
+      allow read, write: if false;
+
+      match /likes/{userId} {
+        allow get: if isSignedIn() && isValidId(postId) && isValidId(userId);
+        allow list: if isSignedIn() && isValidId(postId) && resource.data.postId == postId;
+
+        allow create: if isSignedIn() &&
+                         isValidId(postId) &&
+                         isValidId(userId) &&
+                         request.auth.uid == userId &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().postId == postId &&
+                         incoming().keys().hasAll(['userId', 'postId', 'createdAt']) &&
+                         incoming().keys().hasOnly(['userId', 'postId', 'createdAt']) &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time &&
+                         isValidPostLike(incoming());
+
+        allow update: if false;
+
+        allow delete: if isSignedIn() && isValidId(postId) && isValidId(userId) && request.auth.uid == userId;
+      }
+
+      match /comments/{commentId} {
+        allow get: if isSignedIn() && isValidId(postId) && isValidId(commentId);
+        allow list: if isSignedIn() && isValidId(postId) && resource.data.postId == postId;
+
+        allow create: if isSignedIn() &&
+                         isValidId(postId) &&
+                         isValidId(commentId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().postId == postId &&
+                         incoming().keys().hasAll(['userId', 'postId', 'authorName', 'text', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'postId', 'authorName', 'text', 'createdAt', 'updatedAt']) &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time &&
+                         incoming().updatedAt is timestamp &&
+                         incoming().updatedAt <= request.time &&
+                         isValidPostComment(incoming());
+
+        allow update: if isSignedIn() &&
+                         isValidId(postId) &&
+                         isValidId(commentId) &&
+                         existing().userId == request.auth.uid &&
+                         isValidPostComment(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().postId == existing().postId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().updatedAt is timestamp &&
+                         incoming().updatedAt <= request.time &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['authorName', 'text', 'updatedAt']);
+
+        allow delete: if isSignedIn() && isValidId(postId) && isValidId(commentId) && existing().userId == request.auth.uid;
+      }
+    }
+
+    function isValidRegistration(data) {
+      return data.userId is string &&
+             data.userId.size() >= 1 &&
+             data.userId.size() <= 128 &&
+             data.submissionHash is string &&
+             data.submissionHash.size() >= 8 &&
+             data.submissionHash.size() <= 128 &&
+             data.profileImageBase64 is string &&
+             data.profileImageBase64.size() >= 16 &&
+             data.profileImageBase64.size() <= 200000 &&
+             data.profileImageName is string &&
+             data.profileImageName.size() >= 1 &&
+             data.profileImageName.size() <= 120 &&
+             data.fullName is string &&
+             data.fullName.size() >= 2 &&
+             data.fullName.size() <= 80 &&
+             data.email is string &&
+             data.email.size() >= 3 &&
+             data.email.size() <= 120 &&
+             data.phoneNumber is string &&
+             data.phoneNumber.size() >= 7 &&
+             data.phoneNumber.size() <= 20 &&
+              (!('phoneVerified' in data) || (data.phoneVerified is bool)) &&
+              (!('verifiedWhatsappNumber' in data) || (data.verifiedWhatsappNumber is string && data.verifiedWhatsappNumber.size() >= 10 && data.verifiedWhatsappNumber.size() <= 20)) &&
+              (!('joiningMonths' in data) || (data.joiningMonths is int && data.joiningMonths >= 1 && data.joiningMonths <= 36)) &&
+              (!('monthlyFeeInr' in data) || (data.monthlyFeeInr is int && data.monthlyFeeInr >= 100 && data.monthlyFeeInr <= 500000)) &&
+              (!('totalFeeInr' in data) || (data.totalFeeInr is int && data.totalFeeInr >= 100 && data.totalFeeInr <= 18000000)) &&
+              (!('feeAutomationEnabled' in data) || (data.feeAutomationEnabled is bool)) &&
+              (!('nextDueDateMillis' in data) || (data.nextDueDateMillis is int && data.nextDueDateMillis >= 0)) &&
+              (!('lastNotifiedMonth' in data) || (data.lastNotifiedMonth is int && data.lastNotifiedMonth >= 0 && (!('joiningMonths' in data) || data.lastNotifiedMonth <= data.joiningMonths))) &&
+             data.occupation is string &&
+             data.occupation.size() >= 2 &&
+             data.occupation.size() <= 80 &&
+             data.address is string &&
+             data.address.size() >= 3 &&
+             data.address.size() <= 250 &&
+             (!('ageYears' in data) || (data.ageYears is string && data.ageYears.size() <= 10)) &&
+             (!('dateOfBirth' in data) || (data.dateOfBirth is string && data.dateOfBirth.size() <= 30)) &&
+             (!('membersCount' in data) || (data.membersCount is string && data.membersCount.size() <= 10)) &&
+             data.selectedClasses is list &&
+             data.selectedClasses.size() <= 8 &&
+             data.selectedPackages is list &&
+             data.selectedPackages.size() <= 4 &&
+             (!('healthIssues' in data) || (data.healthIssues is string && data.healthIssues.size() <= 1000)) &&
+             (!('expectations' in data) || (data.expectations is string && data.expectations.size() <= 1000)) &&
+             data.gender in ['Male', 'Female', 'Other'] &&
+             (!('maritalStatus' in data) || (data.maritalStatus is string && data.maritalStatus.size() <= 40)) &&
+             (!('height' in data) || (data.height is string && data.height.size() <= 40)) &&
+             (!('weight' in data) || (data.weight is string && data.weight.size() <= 40)) &&
+             (!('dateOfJoining' in data) || (data.dateOfJoining is string && data.dateOfJoining.size() <= 30)) &&
+             (!('preferredTime' in data) || (data.preferredTime is string && data.preferredTime.size() <= 30)) &&
+             (!('medicationDetails' in data) || (data.medicationDetails is string && data.medicationDetails.size() <= 1000)) &&
+             (!('referralSource' in data) || (data.referralSource is string && data.referralSource.size() <= 500)) &&
+             data.termsAccepted == true &&
+             data.termsSignature is string &&
+             data.termsSignature.size() >= 2 &&
+             data.termsSignature.size() <= 80 &&
+             data.medicalReportNames is list &&
+             data.medicalReportNames.size() <= 6 &&
+             data.medicalReportPreviews is list &&
+             data.medicalReportPreviews.size() <= 6 &&
+             data.notificationChannel is string &&
+             data.notificationChannel.size() >= 1 &&
+             data.notificationChannel.size() <= 40 &&
+             data.notificationDispatched is bool;
+    }
+
+    // Complete student registration submissions (strictly owner-isolated, duplicate-safe)
+    match /registrations/{registrationId} {
+      allow get: if isSignedIn() &&
+                   isValidId(registrationId) &&
+                   (
+                     registrationId.matches('^' + request.auth.uid + '_[a-zA-Z0-9_\\-]+$') ||
+                     (resource != null && resource.data.userId == request.auth.uid)
+                   );
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      allow create: if isSignedIn() &&
+                       isValidId(registrationId) &&
+                       registrationId.matches('^' + request.auth.uid + '_[a-zA-Z0-9_\\-]+$') &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().phoneVerified == true &&
+                       incoming().keys().hasAll([
+                         'userId', 'submissionHash', 'profileImageBase64', 'profileImageName',
+                         'fullName', 'email', 'phoneNumber', 'phoneVerified', 'verifiedWhatsappNumber',
+                         'occupation', 'address', 'joiningMonths', 'monthlyFeeInr', 'totalFeeInr',
+                         'feeAutomationEnabled', 'nextDueDateMillis', 'lastNotifiedMonth',
+                         'selectedClasses', 'selectedPackages', 'gender',
+                         'termsAccepted', 'termsSignature',
+                         'medicalReportNames', 'medicalReportPreviews',
+                         'notificationChannel', 'notificationDispatched',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'submissionHash', 'profileImageBase64', 'profileImageName',
+                         'fullName', 'email', 'phoneNumber', 'phoneVerified', 'verifiedWhatsappNumber',
+                         'occupation', 'address',
+                         'ageYears', 'dateOfBirth', 'membersCount',
+                         'joiningMonths', 'monthlyFeeInr', 'totalFeeInr',
+                         'feeAutomationEnabled', 'nextDueDateMillis', 'lastNotifiedMonth',
+                         'selectedClasses', 'selectedPackages',
+                         'healthIssues', 'expectations', 'gender',
+                         'maritalStatus', 'height', 'weight',
+                         'dateOfJoining', 'preferredTime',
+                         'medicationDetails', 'referralSource',
+                         'termsAccepted', 'termsSignature',
+                         'medicalReportNames', 'medicalReportPreviews',
+                         'notificationChannel', 'notificationDispatched',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       isValidRegistration(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(registrationId) &&
+                       existing().userId == request.auth.uid &&
+                       isValidRegistration(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().submissionHash == existing().submissionHash &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().updatedAt is timestamp &&
+                       incoming().updatedAt <= request.time &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'notificationChannel', 'notificationDispatched',
+                         'lastNotifiedMonth', 'nextDueDateMillis', 'feeAutomationEnabled',
+                         'updatedAt'
+                       ]);
+
+      allow delete: if isSignedIn() && isValidId(registrationId) && existing().userId == request.auth.uid;
+    }
+
+    // Future VAHF published content (classes, live sessions, remote posts) - read-only to app users
+    match /classes/{classId} {
+      allow get: if isSignedIn() && isValidId(classId) && resource.data.published == true;
+      allow list: if isSignedIn() && resource.data.published == true;
+      allow write: if false;
+    }
+
+    match /live_sessions/{sessionId} {
+      allow get: if isSignedIn() && isValidId(sessionId) && resource.data.published == true;
+      allow list: if isSignedIn() && resource.data.published == true;
+      allow write: if false;
+    }
+
+    match /feed_posts/{postId} {
+      allow get: if isSignedIn() && isValidId(postId) && resource.data.published == true;
+      allow list: if isSignedIn() && resource.data.published == true;
+      allow write: if false;
+    }
+  }
+}

@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">VAHF</string>
+    <string name="brand_subtitle">Yoga &amp; Wellness</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_website">Website</string>
+    <string name="nav_classes">Classes</string>
+    <string name="nav_live">Live</string>
+    <string name="nav_profile">Profile</string>
+    <string name="loading_app_please_wait">Please Wait, Loading App</string>
+    <string name="loading_please_wait">Please Wait...</string>
+    <string name="loading_website">Loading Website</string>
+    <string name="retry_label">Retry</string>
+    <string name="coming_soon_title">Coming Soon</string>
+    <string name="sign_in_google">Continue with Google</string>
+    <string name="sign_out_label">Sign Out</string>
+    <string name="registration_nav_button">Registration Form</string>
+    <string name="registration_form_title">Registration form</string>
+    <string name="registration_submit_button">Submit</string>
+    <string name="registration_drop_hint">Drop your file here or click here to upload</string>
+    <string name="registration_terms_text">1- The applicant is satisfied with the yoga sessions / therapy used and accepts it as safe &amp; scientific 2- The applicant accepts &amp; agrees that the trainer OR institute shall not be responsible or liable of any injury 3- Once you register, the fees is non- refundable. If you need pack extension due to medical emergency, request you to submit medical report. the same will be addressed by the management.</string>
+</resources>

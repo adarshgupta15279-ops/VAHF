@@ -1,0 +1,6 @@
+{
+  "name": "VAHF",
+  "description": "VAHF Yoga & Wellness community app featuring real studio photo feed with likes and comments, VAHF website portal, classes, live sessions, and student profiles.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

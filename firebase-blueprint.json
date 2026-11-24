@@ -1,0 +1,465 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Private student profile and registration information owned by the authenticated user.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase user UID."
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Student full name."
+        },
+        "email": {
+          "type": "string",
+          "description": "Student email address."
+        },
+        "mobileNumber": {
+          "type": "string",
+          "description": "Optional student mobile number."
+        },
+        "city": {
+          "type": "string",
+          "description": "Optional student city or center."
+        },
+        "wellnessGoal": {
+          "type": "string",
+          "description": "Optional personal yoga and wellness goal."
+        },
+        "registrationCompleted": {
+          "type": "boolean",
+          "description": "Whether student registration details have been submitted."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the profile was created (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the profile was last updated (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "fullName",
+        "email",
+        "registrationCompleted",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PostLike": {
+      "title": "PostLike",
+      "description": "Single-user like record for a feed post. Document ID equals userId to prevent duplicate likes.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated user UID who liked the post."
+        },
+        "postId": {
+          "type": "string",
+          "description": "Identifier of the liked post."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the like was recorded (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "postId",
+        "createdAt"
+      ]
+    },
+    "PostComment": {
+      "title": "PostComment",
+      "description": "Comment on a VAHF feed post visible to registered users.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated author UID."
+        },
+        "postId": {
+          "type": "string",
+          "description": "Identifier of the post being commented on."
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Public display name of the commenting user."
+        },
+        "text": {
+          "type": "string",
+          "description": "Comment message body."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the comment was created (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the comment was updated (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "postId",
+        "authorName",
+        "text",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PublishedClass": {
+      "title": "PublishedClass",
+      "description": "Read-only online class or schedule entry published by VAHF.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Class title."
+        },
+        "scheduleText": {
+          "type": "string",
+          "description": "Schedule display text."
+        },
+        "category": {
+          "type": "string",
+          "description": "Class category."
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional class description."
+        },
+        "published": {
+          "type": "boolean",
+          "description": "Whether this class is published."
+        }
+      },
+      "required": [
+        "title",
+        "scheduleText",
+        "category",
+        "published"
+      ]
+    },
+    "PublishedLiveSession": {
+      "title": "PublishedLiveSession",
+      "description": "Read-only upcoming live session published by VAHF.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Live session title."
+        },
+        "scheduleText": {
+          "type": "string",
+          "description": "Date and time label."
+        },
+        "meetingUrl": {
+          "type": "string",
+          "description": "Optional real meeting URL."
+        },
+        "published": {
+          "type": "boolean",
+          "description": "Whether this live session is published."
+        }
+      },
+      "required": [
+        "title",
+        "scheduleText",
+        "published"
+      ]
+    },
+    "PublishedFeedPost": {
+      "title": "PublishedFeedPost",
+      "description": "Read-only remote photo post published by VAHF for future content expansion.",
+      "type": "object",
+      "properties": {
+        "caption": {
+          "type": "string",
+          "description": "Short caption for the photograph."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "HTTPS URL of the real photograph."
+        },
+        "category": {
+          "type": "string",
+          "description": "Post category label."
+        },
+        "sortOrder": {
+          "type": "integer",
+          "description": "Display ordering index."
+        },
+        "published": {
+          "type": "boolean",
+          "description": "Whether this post is published."
+        }
+      },
+      "required": [
+        "caption",
+        "imageUrl",
+        "category",
+        "sortOrder",
+        "published"
+      ]
+    },
+    "RegistrationSubmission": {
+      "title": "RegistrationSubmission",
+      "description": "Complete VAHF yoga registration form submission owned by the authenticated student.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Firebase user UID."
+        },
+        "submissionHash": {
+          "type": "string",
+          "description": "Deterministic SHA-256 hash used to prevent duplicate submissions."
+        },
+        "profileImageBase64": {
+          "type": "string",
+          "description": "Compressed JPEG base64 string of applicant photo."
+        },
+        "profileImageName": {
+          "type": "string",
+          "description": "Original filename of uploaded photo."
+        },
+        "fullName": {
+          "type": "string",
+          "description": "Applicant full name."
+        },
+        "email": {
+          "type": "string",
+          "description": "Applicant email address."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "Applicant phone number."
+        },
+        "phoneVerified": {
+          "type": "boolean",
+          "description": "Whether the phone number passed instant verification for WhatsApp automation."
+        },
+        "verifiedWhatsappNumber": {
+          "type": "string",
+          "description": "Verified E.164 WhatsApp number digits (without leading +)."
+        },
+        "occupation": {
+          "type": "string",
+          "description": "Applicant occupation."
+        },
+        "address": {
+          "type": "string",
+          "description": "Applicant residential address."
+        },
+        "ageYears": {
+          "type": "string",
+          "description": "Optional age in years."
+        },
+        "dateOfBirth": {
+          "type": "string",
+          "description": "Optional date of birth."
+        },
+        "membersCount": {
+          "type": "string",
+          "description": "Optional number of members joining."
+        },
+        "joiningMonths": {
+          "type": "integer",
+          "description": "Number of months the applicant is joining (1-36)."
+        },
+        "monthlyFeeInr": {
+          "type": "integer",
+          "description": "Automated monthly fee in INR."
+        },
+        "totalFeeInr": {
+          "type": "integer",
+          "description": "Total plan fee across all joining months in INR."
+        },
+        "feeAutomationEnabled": {
+          "type": "boolean",
+          "description": "Whether monthly WhatsApp fee automation is active."
+        },
+        "nextDueDateMillis": {
+          "type": "integer",
+          "description": "Epoch milliseconds for the next monthly fee WhatsApp reminder."
+        },
+        "lastNotifiedMonth": {
+          "type": "integer",
+          "description": "Count of monthly fee reminders already sent (0 to joiningMonths)."
+        },
+        "selectedClasses": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Selected yoga class categories."
+        },
+        "selectedPackages": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Selected membership packages."
+        },
+        "healthIssues": {
+          "type": "string",
+          "description": "Optional health issues notes."
+        },
+        "expectations": {
+          "type": "string",
+          "description": "Optional expectations from VAHF."
+        },
+        "gender": {
+          "type": "string",
+          "description": "Required gender (Male, Female, or Other)."
+        },
+        "maritalStatus": {
+          "type": "string",
+          "description": "Optional marital status."
+        },
+        "height": {
+          "type": "string",
+          "description": "Optional height."
+        },
+        "weight": {
+          "type": "string",
+          "description": "Optional weight."
+        },
+        "dateOfJoining": {
+          "type": "string",
+          "description": "Optional date of joining."
+        },
+        "preferredTime": {
+          "type": "string",
+          "description": "Optional preferred session time."
+        },
+        "medicationDetails": {
+          "type": "string",
+          "description": "Optional medication details."
+        },
+        "referralSource": {
+          "type": "string",
+          "description": "How applicant heard about VANGMAY YOGA FITNESS."
+        },
+        "termsAccepted": {
+          "type": "boolean",
+          "description": "Whether Terms & Conditions were accepted."
+        },
+        "termsSignature": {
+          "type": "string",
+          "description": "Applicant agreement / signature text."
+        },
+        "medicalReportNames": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Up to 6 uploaded medical report file names."
+        },
+        "medicalReportPreviews": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Compact image previews for uploaded medical reports."
+        },
+        "notificationChannel": {
+          "type": "string",
+          "description": "Admin notification channel used."
+        },
+        "notificationDispatched": {
+          "type": "boolean",
+          "description": "Whether admin notification was dispatched."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when submission was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when submission was last updated."
+        }
+      },
+      "required": [
+        "userId",
+        "submissionHash",
+        "profileImageBase64",
+        "profileImageName",
+        "fullName",
+        "email",
+        "phoneNumber",
+        "phoneVerified",
+        "verifiedWhatsappNumber",
+        "occupation",
+        "address",
+        "joiningMonths",
+        "monthlyFeeInr",
+        "totalFeeInr",
+        "feeAutomationEnabled",
+        "nextDueDateMillis",
+        "lastNotifiedMonth",
+        "selectedClasses",
+        "selectedPackages",
+        "gender",
+        "termsAccepted",
+        "termsSignature",
+        "medicalReportNames",
+        "medicalReportPreviews",
+        "notificationChannel",
+        "notificationDispatched",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "Private student profile documents scoped strictly to the owning user."
+    },
+    "/registrations/{registrationId}": {
+      "schema": {
+        "$ref": "#/entities/RegistrationSubmission"
+      },
+      "description": "Full VAHF registration form submissions owned by the submitting student."
+    },
+    "/posts/{postId}/likes/{userId}": {
+      "schema": {
+        "$ref": "#/entities/PostLike"
+      },
+      "description": "One-like-per-user records for VAHF feed posts."
+    },
+    "/posts/{postId}/comments/{commentId}": {
+      "schema": {
+        "$ref": "#/entities/PostComment"
+      },
+      "description": "Community comments on VAHF feed posts visible to registered users."
+    },
+    "/classes/{classId}": {
+      "schema": {
+        "$ref": "#/entities/PublishedClass"
+      },
+      "description": "Published VAHF online classes and schedules (read-only on client)."
+    },
+    "/live_sessions/{sessionId}": {
+      "schema": {
+        "$ref": "#/entities/PublishedLiveSession"
+      },
+      "description": "Published VAHF upcoming live sessions (read-only on client)."
+    },
+    "/feed_posts/{postId}": {
+      "schema": {
+        "$ref": "#/entities/PublishedFeedPost"
+      },
+      "description": "Future published VAHF photo posts added remotely (read-only on client)."
+    }
+  }
+}
